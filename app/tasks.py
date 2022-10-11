@@ -17,41 +17,33 @@
 #  limitations under the License.
 # ******************************************************************************
 
-from app import implementation_handler, cirq_handler, db
+from app import implementation_handler, qsharp_handler, db
 from rq import get_current_job
 
 from app.result_model import Result
 import logging
 import json
 import base64
-import cirq
 
 
-def execute(impl_url, impl_data, impl_language, transpiled_cirq_json, input_params, token, qpu_name, shots, bearer_token: str):
+def execute(impl_url, impl_data, impl_language, qsharp, input_params, token, qpu_name, shots, bearer_token: str):
     """Create database entry for result. Get implementation code, prepare it, and execute it. Save result in db"""
     job = get_current_job()
 
-    backend = cirq_handler.get_backend(qpu_name)
-    if not backend:
-        result = Result.query.get(job.get_id())
-        result.result = json.dumps({'error': 'qpu-name or token wrong'})
-        result.complete = True
-        db.session.commit()
-
     logging.info('Preparing implementation...')
     circuit = None
-    if transpiled_cirq_json:
-        circuit = cirq.read_json(json_text=transpiled_cirq_json)
+    if qsharp:
+        circuit = qsharp
     else:
         if impl_url:
-            if impl_language.lower() == 'cirq-json':
-                circuit = implementation_handler.prepare_code_from_cirq_url(impl_url, bearer_token)
+            if impl_language.lower() == 'qsharp':
+                circuit = implementation_handler.prepare_code_from_qsharp_url(impl_url, bearer_token)
             else:
                 circuit = implementation_handler.prepare_code_from_url(impl_url, input_params, bearer_token)
         elif impl_data:
             impl_data = base64.b64decode(impl_data.encode()).decode()
-            if impl_language.lower() == 'cirq-json':
-                circuit = implementation_handler.prepare_code_from_cirq_json(impl_data)
+            if impl_language.lower() == 'qsharp':
+                circuit = implementation_handler.prepare_code_from_qsharp(impl_data)
             else:
                 circuit = implementation_handler.prepare_code_from_data(impl_data, input_params)
     if not circuit:
@@ -60,19 +52,18 @@ def execute(impl_url, impl_data, impl_language, transpiled_cirq_json, input_para
         result.complete = True
         db.session.commit()
 
+
     logging.info('Start transpiling...')
-    transpiled_circuit = circuit
     try:
-        if not transpiled_cirq_json:
-            transpiled_circuit = cirq_handler.transpile_for_qpu(qpu_name, circuit)
+        transpiled_circuit = qsharp_handler.transpile(circuit)
     except Exception:
         result = Result.query.get(job.get_id())
-        result.result = json.dumps({'error': 'Unsupported qpu'})
+        result.result = json.dumps({'error': 'Q# code could not be compiled'})
         result.complete = True
         db.session.commit()
 
     logging.info('Start executing...')
-    job_result = cirq_handler.execute_job(transpiled_circuit, shots, backend)
+    job_result = qsharp_handler.execute_job(transpiled_circuit, shots, qpu_name)
     if job_result:
         result = Result.query.get(job.get_id())
         result.result = json.dumps(job_result)

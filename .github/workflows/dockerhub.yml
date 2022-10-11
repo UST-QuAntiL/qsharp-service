@@ -28,18 +28,18 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
-      - name: Build and push latest cirq-service
+      - name: Build and push latest qsharp-service
         if: ${{ steps.vars.outputs.tag == 'main' }}
         uses: docker/build-push-action@v2
         with:
           context: .
           push: true
-          tags: kuhnmx/cirq-service:latest
+          tags: kuhnmx/qsharp-service:latest
 
-      - name: Build and push version of cirq-service
+      - name: Build and push version of qsharp-service
         if: ${{ steps.vars.outputs.tag != 'main' }}
         uses: docker/build-push-action@v2
         with:
           context: .
           push: true
-          tags: kuhnmx/cirq-service:${{ steps.vars.outputs.tag }}
+          tags: kuhnmx/qsharp-service:${{ steps.vars.outputs.tag }}

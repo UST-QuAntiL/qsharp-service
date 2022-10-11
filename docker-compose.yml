@@ -11,8 +11,8 @@ services:
       - "5040:5040"
     networks:
       - default
-  cirq-service:
-    image: kuhnmx/cirq-service:latest
+  qsharp-service:
+    image: kuhnmx/qsharp-service:latest
     command: sh /app/startup.sh
     ports:
       - "5018:5018"
@@ -25,8 +25,8 @@ services:
       - default
 
   rq-worker:
-    image: kuhnmx/cirq-service:latest
-    command: rq worker --url redis://redis:5040 cirq-service_execute
+    image: kuhnmx/qsharp-service:latest
+    command: rq worker --url redis://redis:5040 qsharp-service_execute
     environment:
       - REDIS_URL=redis://redis:5040
       - DATABASE_URL=sqlite:////data/app.db

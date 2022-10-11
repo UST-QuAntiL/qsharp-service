@@ -23,7 +23,6 @@ import os, sys, shutil
 from importlib import reload
 
 from flask_restful import abort
-import cirq
 from urllib3 import HTTPResponse
 
 from app import app
@@ -72,18 +71,18 @@ def prepare_code_from_url(url, input_params, bearer_token: str = ""):
     return circuit
 
 
-def prepare_code_from_cirq_json(cirq_json):
-    return cirq.read_json(json_text=cirq_json)
+def prepare_code_from_qsharp(qsharp):
+    return qsharp
 
 
-def prepare_code_from_cirq_url(url, bearer_token: str = ""):
+def prepare_code_from_qsharp_url(url, bearer_token: str = ""):
     """Get implementation code from URL. Set input parameters into implementation. Return circuit."""
     try:
         impl = _download_code(url, bearer_token)
     except (error.HTTPError, error.URLError):
         return None
 
-    return prepare_code_from_cirq_json(impl)
+    return prepare_code_from_qsharp(impl)
 
 
 def _download_code(url: str, bearer_token: str = "") -> str:

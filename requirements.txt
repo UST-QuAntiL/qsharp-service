@@ -11,5 +11,6 @@ urllib3==1.25.9
 Werkzeug==1.0.1
 numpy~=1.19.0
 gunicorn
-cirq
 markupsafe==2.0.1
+qsharp
+qutip

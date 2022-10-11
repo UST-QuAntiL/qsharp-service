@@ -16,30 +16,28 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 # ******************************************************************************
-import cirq
+from qsharp import QSharpCallable
 
-from app import app, cirq_handler, implementation_handler, db, parameters
+from app import app, qsharp_handler, implementation_handler, db, parameters
 from app.result_model import Result
 from flask import jsonify, abort, request
 import logging
 import json
 import base64
-from cirq import Circuit
 import traceback
 
 
-@app.route('/cirq-service/api/v1.0/transpile', methods=['POST'])
+@app.route('/qsharp-service/api/v1.0/transpile', methods=['POST'])
 def transpile_circuit():
     """Get implementation from URL. Pass input into implementation. Generate and transpile circuit
     and return depth and width."""
 
     if not request.json or not 'qpu-name' in request.json:
         abort(400)
-
-    qpu_name = request.json['qpu-name']
     impl_language = request.json.get('impl-language', '')
     input_params = request.json.get('input-params', "")
     impl_url = request.json.get('impl-url', "")
+    qsharp_string = request.json.get('qsharp-string', "")
     bearer_token = request.json.get("bearer-token", "")
     input_params = parameters.ParameterDictionary(input_params)
     # adapt if real backends are available
@@ -53,9 +51,9 @@ def transpile_circuit():
 
     if impl_url is not None and impl_url != "":
         impl_url = request.json['impl-url']
-        if impl_language.lower() == 'cirq-json':
+        if impl_language.lower() == 'qsharp':
             short_impl_name = 'no name'
-            circuit = implementation_handler.prepare_code_from_cirq_url(impl_url, bearer_token)
+            circuit = implementation_handler.prepare_code_from_qsharp_url(impl_url, bearer_token)
         else:
             short_impl_name = "untitled"
             try:
@@ -67,75 +65,61 @@ def transpile_circuit():
         impl_data = base64.b64decode(request.json.get('impl-data').encode()).decode()
 
         short_impl_name = 'no short name'
-        if impl_language.lower() == 'cirq-json':
-            circuit = implementation_handler.prepare_code_from_cirq_json(impl_data)
+        if impl_language.lower() == 'qsharp':
+            circuit = implementation_handler.prepare_code_from_qsharp(impl_data)
         else:
             try:
                 circuit = implementation_handler.prepare_code_from_data(impl_data, input_params)
             except ValueError:
                 abort(400)
+    elif 'qsharp-string' in request.json:
+        short_impl_name = 'no short name'
+        app.logger.info(request.json.get('qsharp-string'))
+        circuit = qsharp_string
     else:
         abort(400)
 
     try:
-        transpiled_circuit: Circuit = cirq_handler.transpile_for_qpu(qpu_name, circuit)
-
+        transpiled_circuit: QSharpCallable = qsharp_handler.transpile(circuit)
+        estimated_resources = transpiled_circuit.estimate_resources()
         # count number of gates, multi qubit gates and measurements operation, by iterating over all operations
-        number_of_multi_qubit_gates = 0
-        number_of_measurement_operations = 0
-        total_number_of_gates = 0
-        for operation in transpiled_circuit.all_operations():
-            if type(operation) is cirq.GateOperation:
-                total_number_of_gates += 1
-                if cirq.is_measurement(operation):
-                    number_of_measurement_operations += 1
-                elif len(operation.qubits) > 1:
-                    number_of_multi_qubit_gates += 1
+        number_of_cnot_gates = estimated_resources["CNOT"]
+        number_of_measurement_operations = estimated_resources["Measure"]
 
         # width: the amount of qubits
-        width = len(transpiled_circuit.all_qubits())
+        width = estimated_resources["Width"]
 
-        # gate_depth: the longest subsequence of compiled instructions where adjacent instructions share resources
-        # Cirq packs gates as tight as possible in new circuits, the number of moments then is equal to the depth
-        depth = len(cirq.Circuit(transpiled_circuit.all_operations()))
+        # In Q#, only T-gates impact depth
+        t_depth = estimated_resources["Depth"]
 
-        # multi_qubit_gate_depth: Maximum number of successive two-qubit gates in the native cirq program;
-        multi_qubit_gate_depth = len(cirq.Circuit([i for i in transpiled_circuit.all_operations()
-                                                   if len(i.qubits) > 1]))
-
-        # count number of single qubit gates
-        number_of_single_qubit_gates = total_number_of_gates - number_of_multi_qubit_gates
-
-        # count total number of all operations including gates and measurement operations
-        total_number_of_operations = total_number_of_gates + number_of_measurement_operations
-    except NotImplementedError:
-        app.logger.info(f"QPU {qpu_name} is not supported!")
-        abort(400)
+        traced = transpiled_circuit.trace()
     except Exception:
-        app.logger.info(f"Transpile {short_impl_name} for {qpu_name}.")
+        app.logger.info(f"Transpile {short_impl_name}.")
         app.logger.info(traceback.format_exc())
         return jsonify({'error': 'transpilation failed'}), 200
 
-    app.logger.info(f"Transpile {short_impl_name} for {qpu_name}: "
+    app.logger.info(f"Transpile {short_impl_name}: "
                     f"w={width}, "
-                    f"d={depth}, "
-                    f"total number of operations={total_number_of_operations}, "
-                    f"number of single qubit gates={number_of_single_qubit_gates}, "
-                    f"number of multi qubit gates={number_of_multi_qubit_gates}, "
-                    f"number of measurement operations={number_of_measurement_operations}, "
-                    f"multi qubit gate depth={multi_qubit_gate_depth}")
+                    f"t_d={t_depth}, "
+                    f"number of measurement operations={number_of_measurement_operations}")
 
-    return jsonify({'depth': depth,
+    return jsonify({'t_depth': t_depth,
+                    'number-of-cnots': number_of_cnot_gates,
+                    'width': width,
+                    'number-of-measurement-operations': number_of_measurement_operations,
+                    'traced_qsharp': traced}), 200
+
+    """return jsonify({'depth': depth,
                     'multi-qubit-gate-depth': multi_qubit_gate_depth,
                     'width': width,
                     'total-number-of-operations': total_number_of_operations,
                     'number-of-single-qubit-gates': number_of_single_qubit_gates,
                     'number-of-multi-qubit-gates': number_of_multi_qubit_gates,
                     'number-of-measurement-operations': number_of_measurement_operations,
-                    'transpiled-cirq-json': cirq.to_json(transpiled_circuit, indent = 4)}), 200
+                    'transpiled-cirq-json': cirq.to_json(transpiled_circuit, indent=4)}), 200"""
 
 
-@app.route('/cirq-service/api/v1.0/execute', methods=['POST'])
+@app.route('/qsharp-service/api/v1.0/execute', methods=['POST'])
 def execute_circuit():
     """Put execution job in queue. Return location of the later result."""
     if not request.json or not 'qpu-name' in request.json:
@@ -145,7 +129,7 @@ def execute_circuit():
     impl_url = request.json.get('impl-url')
     bearer_token = request.json.get("bearer-token", "")
     impl_data = request.json.get('impl-data')
-    transpiled_cirq_json = request.json.get('transpiled-cirq-json', "")
+    qsharp_string = request.json.get('qsharp-string', "")
     input_params = request.json.get('input-params', "")
     input_params = parameters.ParameterDictionary(input_params)
     shots = request.json.get('shots', 1024)
@@ -157,27 +141,27 @@ def execute_circuit():
         token = ""
 
     job = app.execute_queue.enqueue('app.tasks.execute', impl_url=impl_url, impl_data=impl_data,
-                                    impl_language=impl_language, transpiled_cirq_json=transpiled_cirq_json, qpu_name=qpu_name,
+                                    impl_language=impl_language, qsharp=qsharp_string, qpu_name=qpu_name,
                                     token=token, input_params=input_params, shots=shots, bearer_token=bearer_token)
     result = Result(id=job.get_id(), backend=qpu_name, shots=shots)
     db.session.add(result)
     db.session.commit()
 
     logging.info('Returning HTTP response to client...')
-    content_location = '/cirq-service/api/v1.0/results/' + result.id
+    content_location = '/qsharp-service/api/v1.0/results/' + result.id
     response = jsonify({'Location': content_location})
     response.status_code = 202
     response.headers['Location'] = content_location
     return response
 
 
-@app.route('/cirq-service/api/v1.0/calculate-calibration-matrix', methods=['POST'])
+@app.route('/qsharp-service/api/v1.0/calculate-calibration-matrix', methods=['POST'])
 def calculate_calibration_matrix():
     """Put calibration matrix calculation job in queue. Return location of the later result."""
     pass
 
 
-@app.route('/cirq-service/api/v1.0/results/<result_id>', methods=['GET'])
+@app.route('/qsharp-service/api/v1.0/results/<result_id>', methods=['GET'])
 def get_result(result_id):
     """Return result when it is available."""
     result = Result.query.get(result_id)
@@ -189,7 +173,7 @@ def get_result(result_id):
         return jsonify({'id': result.id, 'complete': result.complete}), 200
 
 
-@app.route('/cirq-service/api/v1.0/version', methods=['GET'])
+@app.route('/qsharp-service/api/v1.0/version', methods=['GET'])
 def version():
     return jsonify({'version': '1.0'})
 
