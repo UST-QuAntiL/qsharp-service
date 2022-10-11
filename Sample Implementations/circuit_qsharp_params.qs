@@ -2,7 +2,7 @@ open Microsoft.Quantum.Canon;
 open Microsoft.Quantum.Intrinsic;
 open Microsoft.Quantum.Measurement;
 
-operation Circuit(a : Int): Result[] {
+operation Circuit(a : Double): Result[] {
     mutable r = [Zero, Zero];
     use q0 = Qubit[2] {
         H(q0[0]);
