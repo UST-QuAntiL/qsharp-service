@@ -81,7 +81,10 @@ def transpile_circuit():
 
     try:
         transpiled_circuit: QSharpCallable = qsharp_handler.transpile(circuit)
-        estimated_resources = transpiled_circuit.estimate_resources()
+        if impl_language.lower() == 'qsharp':
+            estimated_resources = transpiled_circuit.estimate_resources(**input_params)
+        else:
+            estimated_resources = transpiled_circuit.estimate_resources()
         # count number of gates, multi qubit gates and measurements operation, by iterating over all operations
         number_of_cnot_gates = estimated_resources["CNOT"]
         number_of_measurement_operations = estimated_resources["Measure"]
@@ -92,7 +95,10 @@ def transpile_circuit():
         # In Q#, only T-gates impact depth
         t_depth = estimated_resources["Depth"]
 
-        traced = transpiled_circuit.trace()
+        if impl_language.lower() == 'qsharp':
+            traced = transpiled_circuit.trace(**input_params)
+        else:
+            traced = transpiled_circuit.trace()
     except Exception:
         app.logger.info(f"Transpile {short_impl_name}.")
         app.logger.info(traceback.format_exc())

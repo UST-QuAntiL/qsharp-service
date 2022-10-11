@@ -54,17 +54,20 @@ def _prepare_deplarization_noise(p=0.1):
     return noise
 
 
-def execute_job(transpiled_circuit, qpu, shots):
+def execute_job(transpiled_circuit, shots, qpu: str, params=None):
     """Simulate Job on simulator and return results"""
     counts = {}
-    if qpu.lower() == "noise-simulatior":
+    if qpu.lower() == "noise-simulator":
         qsharp.set_noise_model(_prepare_deplarization_noise())
     elif qpu.lower() == "full-state-simulator":
         qsharp.set_noise_model_by_name('ideal')
     else:
         return None
     for i in range(shots):
-        result = transpiled_circuit.simulate_noise()
+        if not params:
+            result = transpiled_circuit.simulate_noise()
+        else:
+            result = transpiled_circuit.simulate_noise(**params)
         key = "".join(map(str, result))
         counts[key] = counts.setdefault(key, 0) + 1
     return counts

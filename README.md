@@ -33,33 +33,54 @@ docker-compose up
 ```
 
 ## Transpilation Request
-Send implementation and QPU information to the API to get properties of the transpiled circuit and the transpiled Cirq-JSON circuit itself.
-
+Send implementation to the API to get properties of the compiled circuit, as well as the trace tree of the circuit.
+The first executable operation found in the code will be transpiled.
+In case of QSharp code, and parameters will be inserted on transpilation.
+In case of Python code, parameters will be used to call the "get_circuit" method, which is expected to return a QSharp string without parameters.
 `POST /qsharp-service/api/v1.0/transpile`
-
-#### Transpilation via data
-```
-{  
-    "impl-data": "BASE64-ENCODED-IMPLEMENTATION",
-    "impl-language": "QSharp",
-    "input-params": {
-        "PARAM-NAME-1": {
-                "rawValue": "YOUR-VALUE-1",
-                "type": "Integer"
-            },
-            "PARAM-NAME-2": {
-                "rawValue": "YOUR-VALUE-2",
-                "type": "String"
-            },
-            ...
-    }
-}
-```
 
 #### Transpilation via URL
 ```
 {  
     "impl-url": "URL-OF-IMPLEMENTATION",
+    "impl-language": "QSharp/Python",
+    "input-params": {
+        "PARAM-NAME-1": {
+                "rawValue": "YOUR-VALUE-1",
+                "type": "Integer"
+            },
+            "PARAM-NAME-2": {
+                "rawValue": "YOUR-VALUE-2",
+                "type": "String"
+            },
+            ...
+    }
+}
+```
+
+#### Transpilation via data
+```
+{  
+    "impl-data": "BASE64-ENCODED-IMPLEMENTATION",
+    "impl-language": "QSharp/Python",
+    "input-params": {
+        "PARAM-NAME-1": {
+                "rawValue": "YOUR-VALUE-1",
+                "type": "Integer"
+            },
+            "PARAM-NAME-2": {
+                "rawValue": "YOUR-VALUE-2",
+                "type": "String"
+            },
+            ...
+    }
+}
+```
+
+#### Transpilation via QSharp-String
+```
+{  
+    "qsharp-string": "QSHARP-STRING",
     "impl-language": "QSharp",
     "input-params": {
         "PARAM-NAME-1": {
@@ -75,40 +96,70 @@ Send implementation and QPU information to the API to get properties of the tran
 }
 ```
 
-
-#### Execution via QSharp-String
-Note that the JSON has to be sent in form of a single string.
-```
-{  
-    "qsharp-string": "TRANSPILED-CIRQ-JSON-STRING",
-    "impl-language": "QSharp-String"
-}
-```
-
 ## Execution Request
 Send implementation, input, and QPU information to the API to execute your circuit and get the result.
-*Note*: Currently, the Cirq package is used for local simulation. Thus, no real backends are accessible.
-Inputs are currently also not supported.
+*Note*: Currently, the QSharp only supports local simulation. Thus, no real backends are accessible.
+The first executable operation found in the code will be executed.
+In case of QSharp code, and parameters will be inserted on execution.
+In case of Python code, parameters will be used to call the "get_circuit" method, which is expected to return a QSharp string without parameters.
 
-`POST /cirq-service/api/v1.0/execute`  
+`POST /qsharp-service/api/v1.0/execute`  
 
+#### Execution via URL
+```
+{  
+    "impl-url": "URL-OF-IMPLEMENTATION",
+    "impl-language": "QSharp/Python",
+    "qpu-name": "Noise-Simulator/Full-State-Simulator",
+    "input-params": {
+        "PARAM-NAME-1": {
+                "rawValue": "YOUR-VALUE-1",
+                "type": "Integer"
+            },
+            "PARAM-NAME-2": {
+                "rawValue": "YOUR-VALUE-2",
+                "type": "String"
+            },
+            ...
+    }
+}
+```
 
 #### Execution via data
 ```
 {  
     "impl-data": "BASE64-ENCODED-IMPLEMENTATION",
-    "impl-language": "Cirq",
-    "qpu-name": "NAME-OF-QPU",
+    "impl-language": "QSharp/Python",
+    "qpu-name": "Noise-Simulator/Full-State-Simulator",
     "input-params": {
+        "PARAM-NAME-1": {
+                "rawValue": "YOUR-VALUE-1",
+                "type": "Integer"
+            },
+            "PARAM-NAME-2": {
+                "rawValue": "YOUR-VALUE-2",
+                "type": "String"
+            },
+            ...
     }
 }
 ```
-#### Execution via transpiled Cirq-JSON String
-Note that the JSON has to be sent in form of a single string.
+#### Execution via QSharp-String
 ```
 {  
-    "transpiled-cirq": "TRANSPILED-CIRQ-JSON-STRING",
-    "qpu-name": "NAME-OF-QPU"
+    "qsharp-string": "QSHARP-STRING",
+    "impl-language": "QSharp",
+    "input-params": {
+        "PARAM-NAME-1": {
+                "rawValue": "YOUR-VALUE-1",
+                "type": "Integer"
+            },
+            "PARAM-NAME-2": {
+                "rawValue": "YOUR-VALUE-2",
+                "type": "String"
+            },
+            ...
+    }
 }
 ```
 

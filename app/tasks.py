@@ -63,7 +63,10 @@ def execute(impl_url, impl_data, impl_language, qsharp, input_params, token, qpu
         db.session.commit()
 
     logging.info('Start executing...')
-    job_result = qsharp_handler.execute_job(transpiled_circuit, shots, qpu_name)
+    if impl_language.lower() == "qsharp":
+        job_result = qsharp_handler.execute_job(transpiled_circuit, shots, qpu_name, input_params)
+    else:
+        job_result = qsharp_handler.execute_job(transpiled_circuit, shots, qpu_name)
     if job_result:
         result = Result.query.get(job.get_id())
         result.result = json.dumps(job_result)
