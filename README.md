@@ -37,6 +37,8 @@ Send implementation to the API to get properties of the compiled circuit, as wel
 The first executable operation found in the code will be transpiled.
 In case of QSharp code, and parameters will be inserted on transpilation.
 In case of Python code, parameters will be used to call the "get_circuit" method, which is expected to return a QSharp string without parameters.
+QSharp only counts "T-Gates" as having a gate time, so the depth only counts "T-Gates".
+
 `POST /qsharp-service/api/v1.0/transpile`
 
 #### Transpilation via URL

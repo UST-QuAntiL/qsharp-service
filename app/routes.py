@@ -109,11 +109,11 @@ def transpile_circuit():
                     f"t_d={t_depth}, "
                     f"number of measurement operations={number_of_measurement_operations}")
 
-    return jsonify({'t_depth': t_depth,
+    return jsonify({'t-depth': t_depth,
                     'number-of-cnots': number_of_cnot_gates,
                     'width': width,
                     'number-of-measurement-operations': number_of_measurement_operations,
-                    'traced_qsharp': traced}), 200
+                    'traced-qsharp': traced}), 200
 
     """return jsonify({'depth': depth,
                     'multi-qubit-gate-depth': multi_qubit_gate_depth,
