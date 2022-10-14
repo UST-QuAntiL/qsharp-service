@@ -115,27 +115,18 @@ def transpile_circuit():
                     'number-of-measurement-operations': number_of_measurement_operations,
                     'traced-qsharp': traced}), 200
 
-    """return jsonify({'depth': depth,
-                    'multi-qubit-gate-depth': multi_qubit_gate_depth,
-                    'width': width,
-                    'total-number-of-operations': total_number_of_operations,
-                    'number-of-single-qubit-gates': number_of_single_qubit_gates,
-                    'number-of-multi-qubit-gates': number_of_multi_qubit_gates,
-                    'number-of-measurement-operations': number_of_measurement_operations,
-                    'transpiled-cirq-json': cirq.to_json(transpiled_circuit, indent=4)}), 200"""
-
 
 @app.route('/qsharp-service/api/v1.0/execute', methods=['POST'])
 def execute_circuit():
     """Put execution job in queue. Return location of the later result."""
-    if not request.json or not 'qpu-name' in request.json:
+    if not request.json:
         abort(400)
-    qpu_name = request.json['qpu-name']
     impl_language = request.json.get('impl-language', '')
     impl_url = request.json.get('impl-url')
     bearer_token = request.json.get("bearer-token", "")
     impl_data = request.json.get('impl-data')
     qsharp_string = request.json.get('qsharp-string', "")
+    noise = request.json.get('gate-noise', "")
     input_params = request.json.get('input-params', "")
     input_params = parameters.ParameterDictionary(input_params)
     shots = request.json.get('shots', 1024)
@@ -146,10 +137,15 @@ def execute_circuit():
     else:
         token = ""
 
+    # If noise is not a dictionary, turn it into a blank dictionary
+    if not isinstance(noise, dict):
+        noise = {}
+
     job = app.execute_queue.enqueue('app.tasks.execute', impl_url=impl_url, impl_data=impl_data,
-                                    impl_language=impl_language, qsharp=qsharp_string, qpu_name=qpu_name,
-                                    token=token, input_params=input_params, shots=shots, bearer_token=bearer_token)
-    result = Result(id=job.get_id(), backend=qpu_name, shots=shots)
+                                    impl_language=impl_language, qsharp=qsharp_string,
+                                    token=token, input_params=input_params, shots=shots, bearer_token=bearer_token,
+                                    noise=noise)
+    result = Result(id=job.get_id(), shots=shots)
     db.session.add(result)
     db.session.commit()
 

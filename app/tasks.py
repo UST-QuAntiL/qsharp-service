@@ -26,7 +26,7 @@ import json
 import base64
 
 
-def execute(impl_url, impl_data, impl_language, qsharp, input_params, token, qpu_name, shots, bearer_token: str):
+def execute(impl_url, impl_data, impl_language, qsharp, input_params, token, shots, bearer_token: str, noise):
     """Create database entry for result. Get implementation code, prepare it, and execute it. Save result in db"""
     job = get_current_job()
 
@@ -62,11 +62,18 @@ def execute(impl_url, impl_data, impl_language, qsharp, input_params, token, qpu
         result.complete = True
         db.session.commit()
 
+    # Extract noise values from dictionary or set them to 0 if missing
+    p_single = noise.setdefault("single_qubit", 0)
+    p_multiple = noise.setdefault("multiple_qubit", 0)
+    p_measure = noise.setdefault("measurement", 0)
+
     logging.info('Start executing...')
+    # If the circuit was originally given as qsharp code, the params will be inserted upon execution.
+    # Otherwise, the circuit was extracted from python code and thus the params have already been used and are omitted.
     if impl_language.lower() == "qsharp":
-        job_result = qsharp_handler.execute_job(transpiled_circuit, shots, qpu_name, input_params)
+        job_result = qsharp_handler.execute_job(transpiled_circuit, shots, p_single, p_multiple, p_measure, input_params)
     else:
-        job_result = qsharp_handler.execute_job(transpiled_circuit, shots, qpu_name)
+        job_result = qsharp_handler.execute_job(transpiled_circuit, p_single, p_multiple, p_measure, shots)
     if job_result:
         result = Result.query.get(job.get_id())
         result.result = json.dumps(job_result)

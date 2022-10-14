@@ -34,35 +34,33 @@ def transpile(circuit):
     return comp
 
 
-def _prepare_deplarization_noise(p=0.1):
+def _prepare_deplarization_noise(p_single, p_multiple, p_measure):
+    """Prepares a depolarisation noise model for the noise simulator"""
     noise = qsharp.get_noise_model_by_name("ideal")
-    p=1-p
-    noise.h.post = qsharp.depolarizing_process(p)
-    noise.x.post = qsharp.depolarizing_process(p)
-    noise.y.post = qsharp.depolarizing_process(p)
-    noise.z.post = qsharp.depolarizing_process(p)
-    noise.i.post = qsharp.depolarizing_process(p)
-    noise.cnot.post = qsharp.depolarizing_process(p)
-    noise.rx.post = qsharp.depolarizing_process(p)
-    noise.ry.post = qsharp.depolarizing_process(p)
-    noise.rz.post = qsharp.depolarizing_process(p)
-    noise.s.post = qsharp.depolarizing_process(p)
-    noise.s_adj.post = qsharp.depolarizing_process(p)
-    noise.t.post = qsharp.depolarizing_process(p)
-    noise.t_adj.post = qsharp.depolarizing_process(p)
-    noise.z_meas = qsharp.depolarizing_process(p)
+    p_single = 1-p_single
+    p_multiple = 1-p_multiple
+    p_measure = 1-p_measure
+    noise.h.post = qsharp.depolarizing_process(p_single)
+    noise.x.post = qsharp.depolarizing_process(p_single)
+    noise.y.post = qsharp.depolarizing_process(p_single)
+    noise.z.post = qsharp.depolarizing_process(p_single)
+    noise.i.post = qsharp.depolarizing_process(p_single)
+    noise.cnot.post = qsharp.depolarizing_process(p_multiple)
+    noise.rx.post = qsharp.depolarizing_process(p_single)
+    noise.ry.post = qsharp.depolarizing_process(p_single)
+    noise.rz.post = qsharp.depolarizing_process(p_single)
+    noise.s.post = qsharp.depolarizing_process(p_single)
+    noise.s_adj.post = qsharp.depolarizing_process(p_single)
+    noise.t.post = qsharp.depolarizing_process(p_single)
+    noise.t_adj.post = qsharp.depolarizing_process(p_single)
+    noise.z_meas = qsharp.depolarizing_process(p_measure)
     return noise
 
 
-def execute_job(transpiled_circuit, shots, qpu: str, params=None):
+def execute_job(transpiled_circuit, shots, p_single, p_multiple, p_measure, params=None):
     """Simulate Job on simulator and return results"""
     counts = {}
-    if qpu.lower() == "noise-simulator":
-        qsharp.set_noise_model(_prepare_deplarization_noise())
-    elif qpu.lower() == "full-state-simulator":
-        qsharp.set_noise_model_by_name('ideal')
-    else:
-        return None
+    qsharp.set_noise_model(_prepare_deplarization_noise(p_single, p_multiple, p_measure))
     for i in range(shots):
         if not params:
             result = transpiled_circuit.simulate_noise()
@@ -71,6 +69,7 @@ def execute_job(transpiled_circuit, shots, qpu: str, params=None):
         key = "".join(map(str, result))
         counts[key] = counts.setdefault(key, 0) + 1
     return counts
+
 
 if __name__ == '__main__':
     circuit = """

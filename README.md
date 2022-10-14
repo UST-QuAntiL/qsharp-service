@@ -112,7 +112,12 @@ In case of Python code, parameters will be used to call the "get_circuit" method
 {  
     "impl-url": "URL-OF-IMPLEMENTATION",
     "impl-language": "QSharp/Python",
-    "qpu-name": "Noise-Simulator/Full-State-Simulator",
+    "shots": "SHOTS",
+    "gate-noise": {
+        "single-qubit": "SINGLE-QUBIT-GATE-DEPOLARISATION-PROBABILITY",
+        "multiple-qubit": "MULTIPLE-QUBIT-GATE-DEPOLARISATION-PROBABILITY",
+        "measurement": "MEASUREMENT-GATE-DEPOLARISATION-PROBABILITY"
+    },
     "input-params": {
         "PARAM-NAME-1": {
                 "rawValue": "YOUR-VALUE-1",
@@ -132,7 +137,12 @@ In case of Python code, parameters will be used to call the "get_circuit" method
 {  
     "impl-data": "BASE64-ENCODED-IMPLEMENTATION",
     "impl-language": "QSharp/Python",
-    "qpu-name": "Noise-Simulator/Full-State-Simulator",
+    "shots": "SHOTS",
+    "gate-noise": {
+        "single-qubit": "SINGLE-QUBIT-GATE-DEPOLARISATION-PROBABILITY",
+        "multiple-qubit": "MULTIPLE-QUBIT-GATE-DEPOLARISATION-PROBABILITY",
+        "measurement": "MEASUREMENT-GATE-DEPOLARISATION-PROBABILITY"
+    },
     "input-params": {
         "PARAM-NAME-1": {
                 "rawValue": "YOUR-VALUE-1",
@@ -151,6 +161,12 @@ In case of Python code, parameters will be used to call the "get_circuit" method
 {  
     "qsharp-string": "QSHARP-STRING",
     "impl-language": "QSharp",
+    "shots": "SHOTS",
+    "gate-noise": {
+        "single-qubit": "SINGLE-QUBIT-GATE-DEPOLARISATION-PROBABILITY",
+        "multiple-qubit": "MULTIPLE-QUBIT-GATE-DEPOLARISATION-PROBABILITY",
+        "measurement": "MEASUREMENT-GATE-DEPOLARISATION-PROBABILITY"
+    },
     "input-params": {
         "PARAM-NAME-1": {
                 "rawValue": "YOUR-VALUE-1",
