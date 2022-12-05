@@ -113,6 +113,7 @@ def transpile_circuit():
                     'number-of-cnots': number_of_cnot_gates,
                     'width': width,
                     'number-of-measurement-operations': number_of_measurement_operations,
+                    'qsharp-string': circuit,
                     'traced-qsharp': traced}), 200
 
 
@@ -127,6 +128,7 @@ def execute_circuit():
     impl_data = request.json.get('impl-data')
     qsharp_string = request.json.get('qsharp-string', "")
     noise = request.json.get('gate-noise', "")
+    qpu = request.json.get('qpu-name', "")
     input_params = request.json.get('input-params', "")
     input_params = parameters.ParameterDictionary(input_params)
     shots = request.json.get('shots', 1024)
@@ -137,9 +139,12 @@ def execute_circuit():
     else:
         token = ""
 
-    # If noise is not a dictionary, turn it into a blank dictionary
+    # If noise is not a dictionary, see if different information is given, else turn it into a blank dictionary
     if not isinstance(noise, dict):
-        noise = {}
+        if qpu == "noisy-simulator":
+            noise = {"single_qubit": 0.1, "multiple_qubit": 0.2, "measurement": 0.1}
+        else:
+            noise = {}
 
     job = app.execute_queue.enqueue('app.tasks.execute', impl_url=impl_url, impl_data=impl_data,
                                     impl_language=impl_language, qsharp=qsharp_string,

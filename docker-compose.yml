@@ -15,7 +15,7 @@ services:
     image: kuhnmx/qsharp-service:latest
     command: sh /app/startup.sh
     ports:
-      - "5018:5018"
+      - "5022:5022"
     environment:
       - REDIS_URL=redis://redis:5040
       - DATABASE_URL=sqlite:////data/app.db

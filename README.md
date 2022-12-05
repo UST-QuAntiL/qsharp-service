@@ -17,7 +17,7 @@ docker-compose pull
 docker-compose up
 ```
 
-Now the qsharp-service is available on http://localhost:5018/.
+Now the qsharp-service is available on http://localhost:5022/.
 
 ## After implementation changes
 * Update container:

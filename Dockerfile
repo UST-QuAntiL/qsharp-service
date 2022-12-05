@@ -32,11 +32,11 @@ RUN ~/.dotnet/tools/dotnet-iqsharp install --user --path-to-tool="~/.dotnet/tool
 
 COPY . /app
 
-EXPOSE 5018/tcp
+EXPOSE 5022/tcp
 
 ENV FLASK_APP=qsharp-service.py
 ENV FLASK_ENV=development
 ENV FLASK_DEBUG=0
 RUN echo "python -m flask db upgrade" > /app/startup.sh
-RUN echo "gunicorn qsharp-service:app -b 0.0.0.0:5018 -w 4 --timeout 500 --log-level info" >> /app/startup.sh
+RUN echo "gunicorn qsharp-service:app -b 0.0.0.0:5022 -w 4 --timeout 500 --log-level info" >> /app/startup.sh
 CMD [ "sh", "/app/startup.sh" ]
