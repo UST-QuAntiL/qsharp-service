@@ -20,7 +20,7 @@ from qsharp import QSharpCallable
 
 from app import app, qsharp_handler, implementation_handler, db, parameters
 from app.result_model import Result
-from flask import jsonify, abort, request
+from flask import jsonify, abort, request, Response
 import logging
 import json
 import base64
@@ -32,7 +32,7 @@ def transpile_circuit():
     """Get implementation from URL. Pass input into implementation. Generate and transpile circuit
     and return depth and width."""
 
-    if not request.json or not 'qpu-name' in request.json:
+    if not request.json:
         abort(400)
     impl_language = request.json.get('impl-language', '')
     input_params = request.json.get('input-params', "")
@@ -102,7 +102,7 @@ def transpile_circuit():
     except Exception:
         app.logger.info(f"Transpile {short_impl_name}.")
         app.logger.info(traceback.format_exc())
-        return jsonify({'error': 'transpilation failed'}), 200
+        abort(Response("transpilation failed", 505))
 
     app.logger.info(f"Transpile {short_impl_name}: "
                     f"w={width}, "

@@ -8,7 +8,7 @@ This service takes a qsharp implementation as data or via an URL and returns eit
 ## Setup
 * Clone repository:
 ```
-git clone https://github.com/KuhnMn/qsharp-service.git
+git clone https://github.com/UST-QuAntiL/qsharp-service.git
 ```
 
 * Start containers:
@@ -22,8 +22,8 @@ Now the qsharp-service is available on http://localhost:5022/.
 ## After implementation changes
 * Update container:
 ```
-docker build -t kuhnmx/qsharp-service:latest
-docker push kuhnmx/qsharp-service:latest
+docker build -t planqk/qsharp-service:latest
+docker push planqk/qsharp-service:latest
 ```
 
 * Start containers:
@@ -180,6 +180,8 @@ In case of Python code, parameters will be used to call the "get_circuit" method
     }
 }
 ```
+
+If no gate-noise is passed, a perfect simulation will be used. A default noisy simulation can be achieved by passing a "noisy-simulator" as a qpu.
 
 Returns a content location for the result. Access it via `GET`.
 

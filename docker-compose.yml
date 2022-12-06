@@ -12,7 +12,7 @@ services:
     networks:
       - default
   qsharp-service:
-    image: kuhnmx/qsharp-service:latest
+    image: planqk/qsharp-service:latest
     command: sh /app/startup.sh
     ports:
       - "5022:5022"
@@ -25,7 +25,7 @@ services:
       - default
 
   rq-worker:
-    image: kuhnmx/qsharp-service:latest
+    image: planqk/qsharp-service:latest
     command: rq worker --url redis://redis:5040 qsharp-service_execute
     environment:
       - REDIS_URL=redis://redis:5040
