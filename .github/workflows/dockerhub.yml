@@ -34,7 +34,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: kuhnmx/qsharp-service:latest
+          tags: planqk/qsharp-service:latest
 
       - name: Build and push version of qsharp-service
         if: ${{ steps.vars.outputs.tag != 'main' }}
@@ -42,4 +42,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: kuhnmx/qsharp-service:${{ steps.vars.outputs.tag }}
+          tags: planqk/qsharp-service:${{ steps.vars.outputs.tag }}
