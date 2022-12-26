@@ -21,6 +21,7 @@ from flask import Flask
 from app.config import Config
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from flask_smorest import Api
 from redis import Redis
 import rq
 from app import config
@@ -30,9 +31,15 @@ app = Flask(__name__)
 app.config.from_object(Config)
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
+api = Api(app)
 
 from app import routes, result_model, errors
 
+api.register_blueprint(routes.blp)
 app.redis = Redis.from_url(app.config['REDIS_URL'], port=5040)
 app.execute_queue = rq.Queue('qsharp-service_execute', connection=app.redis, default_timeout=3600)
 app.logger.setLevel(logging.INFO)
+
+@app.route("/")
+def heartbeat():
+    return '<h1>QSharp Service is running</h1> <h3>View the API Docs <a href="/api/swagger-ui">here</a></h3>'

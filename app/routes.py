@@ -19,27 +19,52 @@
 from qsharp import QSharpCallable
 
 from app import app, qsharp_handler, implementation_handler, db, parameters
+from app.request_schemas import TranspilationRequestSchema, TranspilationRequest, ExecutionRequestSchema, \
+    ExecutionRequest
+from app.response_schemas import TranspilationResponseSchema, TranspilationResponse, ExecutionResponseSchema, \
+    ExecutionResponse, ResultResponseSchema
 from app.result_model import Result
 from flask import jsonify, abort, request, Response
+from flask_smorest import Blueprint
 import logging
 import json
 import base64
 import traceback
 
+blp = Blueprint(
+    "routes",
+    __name__,
+    url_prefix="/qsharp-service/api/v1.0/",
+    description="All QSharp-Service endpoints",
+)
 
-@app.route('/qsharp-service/api/v1.0/transpile', methods=['POST'])
-def transpile_circuit():
+@blp.route("/transpile", methods=["POST"])
+@blp.arguments(
+    TranspilationRequestSchema,
+    example={
+        "impl-url": "https://raw.githubusercontent.com/UST-QuAntiL/qsharp-service/main/Sample%20Implementations/circuit_qsharp_params.qs",
+        "impl-language": "QSharp",
+        "input-params": {
+                "a": {
+                        "rawValue": 2.0,
+                        "type": "Float"
+                }
+        }
+    }
+)
+@blp.response(200, TranspilationResponseSchema)
+def transpile_circuit(request: TranspilationRequest):
     """Get implementation from URL. Pass input into implementation. Generate and transpile circuit
     and return depth and width."""
-
-    if not request.json:
+    if not request:
         abort(400)
-    impl_language = request.json.get('impl-language', '')
-    input_params = request.json.get('input-params', "")
-    impl_url = request.json.get('impl-url', "")
-    qsharp_string = request.json.get('qsharp-string', "")
-    bearer_token = request.json.get("bearer-token", "")
-    input_params = parameters.ParameterDictionary(input_params)
+    impl_language = request.get('impl_language', '')
+    input_params = request.get('input_params', "")
+    impl_url = request.get('impl_url', "")
+    qsharp_string = request.get('qsharp_string', "")
+    bearer_token = request.get("bearer_token", "")
+    if input_params != "":
+        input_params = parameters.ParameterDictionary(input_params)
     # adapt if real backends are available
     token = ''
     # if 'token' in input_params:
@@ -50,7 +75,7 @@ def transpile_circuit():
     #     abort(400)
 
     if impl_url is not None and impl_url != "":
-        impl_url = request.json['impl-url']
+        impl_url = request.get('impl_url')
         if impl_language.lower() == 'qsharp':
             short_impl_name = 'no name'
             circuit = implementation_handler.prepare_code_from_qsharp_url(impl_url, bearer_token)
@@ -61,8 +86,8 @@ def transpile_circuit():
             except ValueError:
                 abort(400)
 
-    elif 'impl-data' in request.json:
-        impl_data = base64.b64decode(request.json.get('impl-data').encode()).decode()
+    elif 'impl-data' in request:
+        impl_data = base64.b64decode(request.get('impl_data').encode()).decode()
 
         short_impl_name = 'no short name'
         if impl_language.lower() == 'qsharp':
@@ -72,9 +97,9 @@ def transpile_circuit():
                 circuit = implementation_handler.prepare_code_from_data(impl_data, input_params)
             except ValueError:
                 abort(400)
-    elif 'qsharp-string' in request.json:
+    elif 'qsharp_string' in request:
         short_impl_name = 'no short name'
-        app.logger.info(request.json.get('qsharp-string'))
+        app.logger.info(request.get('qsharp-string'))
         circuit = qsharp_string
     else:
         abort(400)
@@ -102,40 +127,55 @@ def transpile_circuit():
     except Exception:
         app.logger.info(f"Transpile {short_impl_name}.")
         app.logger.info(traceback.format_exc())
-        abort(Response("transpilation failed", 505))
+        abort(Response("Transpilation failed", 500))
 
     app.logger.info(f"Transpile {short_impl_name}: "
                     f"w={width}, "
                     f"t_d={t_depth}, "
                     f"number of measurement operations={number_of_measurement_operations}")
-
-    return jsonify({'t-depth': t_depth,
-                    'number-of-cnots': number_of_cnot_gates,
-                    'width': width,
-                    'number-of-measurement-operations': number_of_measurement_operations,
-                    'qsharp-string': circuit,
-                    'traced-qsharp': traced}), 200
+    return TranspilationResponse(t_depth, number_of_cnot_gates, width, number_of_measurement_operations, circuit, traced)
 
 
-@app.route('/qsharp-service/api/v1.0/execute', methods=['POST'])
-def execute_circuit():
+@blp.route("/execute", methods=["POST"])
+@blp.arguments(
+    ExecutionRequestSchema,
+    example={
+        "impl-url": "https://raw.githubusercontent.com/UST-QuAntiL/qsharp-service/main/Sample%20Implementations/circuit_qsharp_params.qs",
+        "impl-language": "QSharp",
+        "shots": 1024,
+        "gate-noise": {
+            "single-qubit": 0.1,
+            "multiple-qubit": 0.2,
+            "measurement": 0.1
+        },
+        "input-params": {
+                "a": {
+                        "rawValue": 2.0,
+                        "type": "Float"
+                }
+        }
+    }
+)
+@blp.response(202, ExecutionResponseSchema)
+def execute_circuit(request: ExecutionRequest):
     """Put execution job in queue. Return location of the later result."""
-    if not request.json:
+    if not request:
         abort(400)
-    impl_language = request.json.get('impl-language', '')
-    impl_url = request.json.get('impl-url')
-    bearer_token = request.json.get("bearer-token", "")
-    impl_data = request.json.get('impl-data')
-    qsharp_string = request.json.get('qsharp-string', "")
-    noise = request.json.get('gate-noise', "")
-    qpu = request.json.get('qpu-name', "")
-    input_params = request.json.get('input-params', "")
-    input_params = parameters.ParameterDictionary(input_params)
-    shots = request.json.get('shots', 1024)
+    impl_language = request.get('impl_language', '')
+    impl_url = request.get('impl_url')
+    bearer_token = request.get("bearer_token", "")
+    impl_data = request.get('impl_data')
+    qsharp_string = request.get('qsharp_string', "")
+    noise = request.get('gate_noise', "")
+    qpu = request.get('qpu_name', "")
+    input_params = request.get('input_params', "")
+    if input_params != "":
+        input_params = parameters.ParameterDictionary(input_params)
+    shots = request.get('shots', 1024)
     if 'token' in input_params:
         token = input_params['token']
-    elif 'token' in request.json:
-        token = request.json.get('token')
+    elif 'token' in request:
+        token = request.get('token')
     else:
         token = ""
 
@@ -156,19 +196,20 @@ def execute_circuit():
 
     logging.info('Returning HTTP response to client...')
     content_location = '/qsharp-service/api/v1.0/results/' + result.id
-    response = jsonify({'Location': content_location})
+    response = ExecutionResponse(content_location)
     response.status_code = 202
-    response.headers['Location'] = content_location
+    response.headers.set("Location", content_location)
     return response
 
 
 @app.route('/qsharp-service/api/v1.0/calculate-calibration-matrix', methods=['POST'])
 def calculate_calibration_matrix():
     """Put calibration matrix calculation job in queue. Return location of the later result."""
-    pass
+    abort(404)
 
 
-@app.route('/qsharp-service/api/v1.0/results/<result_id>', methods=['GET'])
+@blp.route("/results/<string:result_id>", methods=["GET"])
+@blp.response(200, ResultResponseSchema)
 def get_result(result_id):
     """Return result when it is available."""
     result = Result.query.get(result_id)
@@ -180,7 +221,8 @@ def get_result(result_id):
         return jsonify({'id': result.id, 'complete': result.complete}), 200
 
 
-@app.route('/qsharp-service/api/v1.0/version', methods=['GET'])
+@blp.route("/version", methods=["GET"])
+@blp.response(200)
 def version():
     return jsonify({'version': '1.0'})
 
