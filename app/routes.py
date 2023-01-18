@@ -22,7 +22,7 @@ from app import app, qsharp_handler, implementation_handler, db, parameters
 from app.request_schemas import TranspilationRequestSchema, TranspilationRequest, ExecutionRequestSchema, \
     ExecutionRequest
 from app.response_schemas import TranspilationResponseSchema, TranspilationResponse, ExecutionResponseSchema, \
-    ExecutionResponse, ResultResponseSchema
+    ExecutionResponse, ResultResponseSchema, ResultResponse
 from app.result_model import Result
 from flask import jsonify, abort, request, Response
 from flask_smorest import Blueprint
@@ -212,13 +212,13 @@ def calculate_calibration_matrix():
 @blp.response(200, ResultResponseSchema)
 def get_result(result_id):
     """Return result when it is available."""
-    result = Result.query.get(result_id)
+    result = Result.query.get(result_id.strip())
     if result.complete:
         result_histogram = json.loads(result.result)
-        return jsonify({'id': result.id, 'complete': result.complete, 'result': result_histogram,
-                        'backend': result.backend, 'shots': result.shots}), 200
+        response = ResultResponse(result.id, result.complete, result_histogram, result.backend, result.shots)
     else:
-        return jsonify({'id': result.id, 'complete': result.complete}), 200
+        response = ResultResponse(result.id, result.complete)
+    return response
 
 
 @blp.route("/version", methods=["GET"])
