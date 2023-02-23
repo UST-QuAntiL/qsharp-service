@@ -11,7 +11,7 @@ class TranspilationResponse:
         self.width = width
         self.number_of_measurement_operations = number_of_measurement_operations
         self.qsharp_string = qsharp_string
-        self.traced_qsharp = traced_qsharp
+        self.traced_qsharp = str(traced_qsharp)
 
 
 class ExecutionResponse(Response):
@@ -36,7 +36,7 @@ class TranspilationResponseSchema(ma.Schema):
     width = ma.fields.Integer()
     number_of_measurement_operations = ma.fields.Integer(data_key="number-of-measurement-operations")
     qsharp_string = ma.fields.String(data_key="qsharp-string")
-    traced_qsharp = ma.fields.Mapping(data_key="traced-qsharp")
+    traced_qsharp = ma.fields.String(data_key="traced-qsharp")
 
 
 class ExecutionResponseSchema(ma.Schema):

@@ -62,6 +62,7 @@ def transpile_circuit(request: TranspilationRequest):
     input_params = request.get('input_params', "")
     impl_url = request.get('impl_url', "")
     qsharp_string = request.get('qsharp_string', "")
+    impl_data = request.get('impl_data', "")
     bearer_token = request.get("bearer_token", "")
     if input_params != "":
         input_params = parameters.ParameterDictionary(input_params)
@@ -73,6 +74,7 @@ def transpile_circuit(request: TranspilationRequest):
     #     token = request.json.get('token')
     # else:
     #     abort(400)
+    logging.info("Input is " + str(request))
 
     if impl_url is not None and impl_url != "":
         impl_url = request.get('impl_url')
@@ -86,8 +88,8 @@ def transpile_circuit(request: TranspilationRequest):
             except ValueError:
                 abort(400)
 
-    elif 'impl-data' in request:
-        impl_data = base64.b64decode(request.get('impl_data').encode()).decode()
+    elif impl_data:
+        impl_data = base64.b64decode(impl_data.encode()).decode()
 
         short_impl_name = 'no short name'
         if impl_language.lower() == 'qsharp':
@@ -97,9 +99,9 @@ def transpile_circuit(request: TranspilationRequest):
                 circuit = implementation_handler.prepare_code_from_data(impl_data, input_params)
             except ValueError:
                 abort(400)
-    elif 'qsharp_string' in request:
+    elif qsharp_string:
         short_impl_name = 'no short name'
-        app.logger.info(request.get('qsharp-string'))
+        app.logger.info(qsharp_string)
         circuit = qsharp_string
     else:
         abort(400)

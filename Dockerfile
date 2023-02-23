@@ -1,4 +1,4 @@
-FROM python:3.8
+FROM python:3.9
 
 MAINTAINER Marie Salm "marie.salm@iaas.uni-stuttgart.de"
 
@@ -7,6 +7,9 @@ WORKDIR /app
 RUN apt-get update
 RUN apt-get install -y gcc python3-dev
 RUN pip install -r requirements.txt
+
+# Installing Q# Dependency
+RUN apt install libgomp1
 
 # Installing .NET.
 RUN wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.asc.gpg && \
@@ -29,6 +32,7 @@ RUN dotnet tool install \
            Microsoft.Quantum.IQSharp
 RUN ~/.dotnet/tools/dotnet-iqsharp install --user --path-to-tool="~/.dotnet/tools/dotnet-iqsharp"
 
+RUN export PATH="$PATH:/root/.dotnet/tools"
 
 COPY . /app
 
